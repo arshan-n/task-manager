@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useEffect } from 'react';
 
 type Task = {
@@ -25,6 +25,7 @@ export function TaskForm({ task, onClose, onSave }: TaskFormProps) {
   const [priority, setPriority] = useState(task?.priority || 2);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -33,14 +34,44 @@ export function TaskForm({ task, onClose, onSave }: TaskFormProps) {
     };
     getUser();
   }, []);
+
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+    
+    if (!title.trim()) {
+      errors.push('Title is required');
+    }
+    
+    if (!description.trim()) {
+      errors.push('Description is required');
+    }
+    
+    if (dueDate) {
+      const selectedDate = new Date(dueDate);
+      const now = new Date(); // Keep hours, minutes for more precise comparison
+      
+      if (selectedDate < now) {
+        errors.push('Due date cannot be in the past');
+      }
+    }
+    
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
     try {
       if (task) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('tasks')
           .update({
             title,
@@ -48,13 +79,18 @@ export function TaskForm({ task, onClose, onSave }: TaskFormProps) {
             due_date: dueDate || null,
             priority,
           })
-          .eq('id', task.id);
+          .eq('id', task.id)
+          .select()
+          .single();
 
         if (error) throw error;
+        onSave();
       } else {
         if (!userId) throw new Error('User not authenticated');
 
-        const { error } = await supabase.from('tasks').insert([
+        const { data, error } = await supabase
+        .from('tasks')
+        .insert([
           {
             user_id: userId,
             title,
@@ -62,13 +98,18 @@ export function TaskForm({ task, onClose, onSave }: TaskFormProps) {
             due_date: dueDate || null,
             priority,
           },
-        ]);
+        ])
+        .select()
+        .single()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        });
 
         if (error) throw error;
+        onSave();
+        onClose();
       }
-
-      onSave();
-      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -116,6 +157,7 @@ export function TaskForm({ task, onClose, onSave }: TaskFormProps) {
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 shadow-sm"
               placeholder="Add any additional details..."
               rows={3}
+              required
             />
           </div>
 
@@ -126,6 +168,7 @@ export function TaskForm({ task, onClose, onSave }: TaskFormProps) {
             <input
               type="datetime-local"
               value={dueDate}
+              min={new Date().toISOString().slice(0, 16)}
               onChange={(e) => setDueDate(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 shadow-sm"
             />
@@ -145,6 +188,17 @@ export function TaskForm({ task, onClose, onSave }: TaskFormProps) {
               <option value={3}>Low</option>
             </select>
           </div>
+
+          {validationErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
+              {validationErrors.map((error, index) => (
+                <div key={index} className="flex items-center text-sm text-red-600">
+                  <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                  {error}
+                </div>
+              ))}
+            </div>
+          )}
 
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
