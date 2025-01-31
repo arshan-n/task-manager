@@ -38,8 +38,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 npm run dev
 ```
 
-
-
 ## Key Components
 
 ### Authentication
@@ -60,58 +58,6 @@ npm run dev
 - Task-specific focus sessions
 - Desktop notifications
 
-## Database Schema
-
-### Tasks Table
-- `id`: UUID (Primary Key)
-- `user_id`: UUID (Foreign Key to auth.users)
-- `title`: Text
-- `description`: Text (Optional)
-- `due_date`: Timestamp with timezone (Optional)
-- `priority`: Integer (1: High, 2: Medium, 3: Low)
-- `completed`: Boolean
-- `order`: Integer
-- `created_at`: Timestamp with timezone
-- `updated_at`: Timestamp with timezone
-
-### Task Checklists Table
-- `id`: UUID (Primary Key)
-- `task_id`: UUID (Foreign Key to tasks)
-- `title`: Text
-- `completed`: Boolean
-- `order`: Integer
-- `created_at`: Timestamp with timezone
-
-### Task Notes Table
-- `id`: UUID (Primary Key)
-- `task_id`: UUID (Foreign Key to tasks)
-- `content`: Text
-- `created_at`: Timestamp with timezone
-
-## Security
-
-- Row Level Security (RLS) enabled
-- User-specific data access
-- Secure authentication flow
-- Protected API endpoints
-
-## Development
-
-### Available Scripts
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run linting
-npm run lint
-```
 
 ### Environment Variables
 
@@ -119,14 +65,6 @@ npm run lint
 VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
 
 ## License
 
