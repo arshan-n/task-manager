@@ -8,6 +8,10 @@ export function Dashboard() {
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
   const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0 });
 
+  const handleTaskSave = () => {
+    setShowNewTaskForm(false);
+  };
+
   const updateStats = (total: number, completed: number) => {
     setStats({
       total,
@@ -92,7 +96,7 @@ export function Dashboard() {
         {showNewTaskForm && (
           <TaskForm
             onClose={() => setShowNewTaskForm(false)}
-            onSave={() => setShowNewTaskForm(false)}
+            onSave={handleTaskSave}
           />
         )}
       </div>
