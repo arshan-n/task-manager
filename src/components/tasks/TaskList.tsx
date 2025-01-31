@@ -8,6 +8,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { TaskForm } from './TaskForm';
 import { TaskDetails } from './TaskDetails';
 
+type TaskSubscription = ReturnType<typeof supabase.channel>;
+
 type Task = {
   id: string;
   title: string;
@@ -30,6 +32,7 @@ export function TaskList({ onStatsUpdate }: TaskListProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<TaskSubscription | null>(null);
   const navigate = useNavigate();
 
   const sensors = useSensors(
@@ -47,13 +50,14 @@ export function TaskList({ onStatsUpdate }: TaskListProps) {
   );
 
   useEffect(() => {
-    fetchTasks();
-
-    const setupRealtimeSubscription = async () => {
+    const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('No user found for subscription');
+        return;
+      }
 
-      return supabase
+      const channel = supabase
         .channel('tasks_channel')
         .on(
           'postgres_changes',
@@ -62,26 +66,27 @@ export function TaskList({ onStatsUpdate }: TaskListProps) {
             schema: 'public',
             table: 'tasks',
             filter: `user_id=eq.${user.id}`
-          },
-          () => {
+          } as any,
+          (payload) => {
+            console.log('Real-time update:', payload);
             fetchTasks();
           }
         )
         .subscribe();
+
+      console.log('Subscription set up successfully');
+      setSubscription(channel);
     };
 
-    // Subscribe to realtime changes
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    setupRealtimeSubscription().then(ch => {
-      channel = ch || null;
-    });
+    setupSubscription();
+    fetchTasks();
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      if (subscription) {
+        supabase.removeChannel(subscription);
       }
     };
-  }, []);
+  }, [onStatsUpdate]);
 
   const fetchTasks = async () => {
     try {
